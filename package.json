@@ -1,0 +1,8 @@
+{
+  "name": "aevy-server",
+  "dependencies": {
+    "express": "^4.18.2",
+    "nodemailer": "^6.9.0",
+    "cors": "^2.8.5"
+  }
+}
