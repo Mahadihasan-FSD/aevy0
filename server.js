@@ -3,14 +3,19 @@ const nodemailer = require('nodemailer');
 const cors = require('cors');
 const app = express();
 
-// CORS সব অনুমতি দিন (সহজ সমাধান)
+// CORS সব অনুমতি
 app.use(cors({
-  origin: '*',  // সব origin থেকে অনুমতি
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());
+
+// Check environment variable
+if (!process.env.EMAIL_PASSWORD) {
+  console.error('❌ ERROR: EMAIL_PASSWORD environment variable is not set!');
+}
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -23,14 +28,10 @@ const transporter = nodemailer.createTransport({
 app.post('/send-email', async (req, res) => {
   const { email, message } = req.body;
   
-  // CORS headers manually যোগ করুন
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  console.log(`📧 Received request from: ${email}`);
   
-  // OPTIONS request handle করুন (preflight)
-  if (req.method === 'OPTIONS') {
-    return res.status(200).send();
+  if (!email || !message) {
+    return res.status(400).json({ success: false, error: 'Email and message required' });
   }
   
   try {
@@ -42,12 +43,28 @@ app.post('/send-email', async (req, res) => {
       replyTo: email
     });
     
+    console.log('✅ Email sent successfully');
     res.json({ success: true });
   } catch (error) {
+    console.error('❌ Email error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-app.listen(3000, () => {
-  console.log('Server running on port 3000');
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.send('AEVY Email Server is running');
+});
+
+// Use Render's PORT
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📍 URL: https://aevy-email-server.onrender.com`);
+  console.log(`🔐 EMAIL_PASSWORD is ${process.env.EMAIL_PASSWORD ? '✅ SET' : '❌ NOT SET'}`);
 });
